@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monster Pack Opener</title>
+<style>
+  /* ===== RESET ===== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: #0d1117;
+    color: #e6edf3;
+    overflow-x: hidden;
+  }
+
+  .app { max-width: 640px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; }
+
+  /* ===== HEADER ===== */
+  .header {
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    padding: 14px 20px; text-align: center;
+    border-bottom: 2px solid #f0c040; position: sticky; top: 0; z-index: 10;
+  }
+  .header h1 { font-size: 1.4rem; color: #f0c040; letter-spacing: 1px; }
+  .hud { display: flex; justify-content: center; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+  .hud-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #1a1a2e; border: 2px solid #f0c040; border-radius: 20px;
+    padding: 3px 12px; font-weight: 700; color: #f0c040; font-size: 0.85rem;
+  }
+  .hud-pill.pity { border-color: #b678f0; color: #cba6f7; }
+  .hud-pill.pity.ready { border-color: #ff6b9d; color: #ff6b9d; animation: readyPulse 1s ease-in-out infinite; }
+  @keyframes readyPulse { 0%,100% { transform: scale(1);} 50% { transform: scale(1.08);} }
+
+  /* ===== TABS ===== */
+  .tabs { display: flex; background: #161b22; border-bottom: 1px solid #30363d; }
+  .tab {
+    flex: 1; padding: 12px; text-align: center; cursor: pointer;
+    font-weight: 600; color: #8b949e; border-bottom: 3px solid transparent; user-select: none;
+  }
+  .tab:hover { color: #e6edf3; }
+  .tab.active { color: #f0c040; border-bottom-color: #f0c040; }
+
+  .panel { display: none; flex: 1; padding: 20px; }
+  .panel.active { display: block; }
+
+  /* ===== OPEN PANEL ===== */
+  .pack-area { display: flex; flex-direction: column; align-items: center; gap: 20px; padding-top: 12px; }
+  .pack { width: 190px; height: 260px; cursor: pointer; position: relative; transition: transform .15s; perspective: 800px; }
+  .pack:hover { transform: scale(1.04); }
+  .pack:active { transform: scale(.96); }
+  .pack.shake { animation: shake .4s ease-in-out; }
+  @keyframes shake {
+    0%,100% { transform: translateX(0);} 20% { transform: translateX(-7px) rotate(-2deg);}
+    40% { transform: translateX(7px) rotate(2deg);} 60% { transform: translateX(-5px);} 80% { transform: translateX(5px);}
+  }
+  .sleeve {
+    width: 100%; height: 100%; border-radius: 16px;
+    background: linear-gradient(145deg, #c41e3a, #8b0000);
+    border: 4px solid #f0c040; position: relative; overflow: hidden;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    box-shadow: 0 8px 32px rgba(240,192,64,.25);
+  }
+  .sleeve::before { content:''; position:absolute; inset:8px; border-radius:10px; border:2px dashed rgba(240,192,64,.5); }
+  .pokeball { width: 62px; height: 62px; border-radius: 50%; position: relative;
+    background: linear-gradient(to bottom, #e33 0%, #e33 46%, #222 46%, #222 54%, #f5f5f5 54%, #f5f5f5 100%);
+    box-shadow: 0 4px 14px rgba(0,0,0,.4); }
+  .pokeball::after { content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    width: 18px; height: 18px; background:#f5f5f5; border: 4px solid #222; border-radius: 50%; }
+  .pack-label { margin-top: 14px; font-weight: 800; color: #f0c040; text-transform: uppercase; letter-spacing: 3px; font-size: .85rem; }
+  .pack-sub { font-size: .65rem; color: rgba(255,255,255,.75); letter-spacing: 1px; margin-top: 3px; }
+
+  .btn {
+    padding: 12px 28px; border: none; border-radius: 24px; font-weight: 700; font-size: .95rem;
+    cursor: pointer; letter-spacing: .5px; font-family: inherit;
+  }
+  .btn-gold { background: #f0c040; color: #1a1a2e; }
+  .btn-gold:hover { transform: scale(1.04); }
+  .btn-ghost { background: transparent; border: 2px solid #f0c040; color: #f0c040; }
+  .btn-ghost:hover { background: rgba(240,192,64,.15); }
+  .hint { color: #8b949e; font-size: .85rem; text-align: center; }
+
+  .odds { margin-top: 6px; width: 100%; }
+  .odds summary { cursor: pointer; color: #8b949e; font-size: .8rem; text-align: center; }
+  .odds table { width: 100%; margin-top: 10px; border-collapse: collapse; font-size: .78rem; background:#161b22; border-radius:10px; overflow:hidden; }
+  .odds td, .odds th { padding: 6px 8px; border-bottom: 1px solid #30363d; text-align: center; }
+  .odds th { color: #f0c040; font-size: .72rem; text-transform: uppercase; letter-spacing: 1px; }
+  .dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; vertical-align:middle; }
+  .dot-common { background:#9ca3af; } .dot-uncommon { background:#57d38c; }
+  .dot-rare { background:#f5c518; } .dot-ultrarare { background:#c084fc; }
+
+  /* ===== COLLECTION ===== */
+  .filter-bar { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+  .filter-btn {
+    padding: 6px 13px; border-radius: 14px; border: 1px solid #30363d; background: #161b22;
+    color: #8b949e; cursor: pointer; font-size: .76rem; font-weight: 600; font-family: inherit;
+  }
+  .filter-btn.active { background: #f0c040; color: #1a1a2e; border-color: #f0c040; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 12px; }
+  .c-card {
+    background: #161b22; border-radius: 12px; border: 2px solid #30363d; padding: 10px;
+    text-align: center; position: relative; transition: transform .2s;
+  }
+  .c-card:hover { transform: translateY(-3px); }
+  .c-card.rarity-common { border-color:#374151; }
+  .c-card.rarity-uncommon { border-color:#2f6e46; }
+  .c-card.rarity-rare { border-color:#f5c518; }
+  .c-card.rarity-ultrarare { border-color:#c084fc; box-shadow: 0 0 12px rgba(192,132,252,.35); }
+  .c-art { font-size: 2.4rem; line-height: 1; }
+  .c-name { font-size: .78rem; font-weight: 700; margin-top: 6px; }
+  .c-count { font-size: .7rem; color: #8b949e; }
+  .c-count.shiny { color: #ffd93d; }
+  .new-badge { position:absolute; top:-7px; right:-7px; background:#ff4444; color:#fff; font-size:.58rem;
+    font-weight:800; padding:3px 7px; border-radius:10px; animation: pop .5s ease-out; }
+  .shiny-badge { position:absolute; top:-7px; left:-7px; font-size:.9rem; animation: pop .5s ease-out; }
+  @keyframes pop { 0% { transform: scale(0);} 70% { transform: scale(1.4);} 100% { transform: scale(1);} }
+  .empty { grid-column: 1/-1; text-align:center; padding:50px 20px; color:#484f58; }
+  .empty .e-icon { font-size: 4rem; margin-bottom: 10px; }
+
+  /* ===== STATS ===== */
+  .stats-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; }
+  .stat-card { background:#161b22; border-radius:12px; border:1px solid #30363d; padding:16px; text-align:center; }
+  .stat-card.full { grid-column: 1/-1; }
+  .stat-value { font-size: 2rem; font-weight: 800; color: #f0c040; }
+  .stat-label { font-size: .74rem; color:#8b949e; margin-top:4px; }
+  .bar-track { height: 12px; background:#21262d; border-radius:6px; overflow:hidden; margin-top:8px; }
+  .bar-fill { height:100%; background: linear-gradient(90deg,#f0c040,#ffd700); border-radius:6px; transition: width .5s; }
+  .breakdown-row { display:flex; justify-content:space-between; padding:6px 0; font-size:.85rem; }
+
+  /* ===== REVEAL OVERLAY ===== */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.88); z-index: 100;
+    display: none; flex-direction: column; align-items: center; justify-content: center; padding: 20px;
+  }
+  .overlay.active { display: flex; }
+  .overlay h2 { color: #f0c040; margin-bottom: 4px; }
+  .overlay .sub { color: #8b949e; font-size: .85rem; margin-bottom: 18px; }
+  .banner {
+    display:none; padding: 8px 18px; border-radius: 20px; font-weight:800; margin-bottom: 16px;
+    background: linear-gradient(135deg,#ff6b6b,#ffd93d,#6bcb77,#4d96ff); color:#1a1a2e; background-size: 300% 300%;
+    animation: bannerShift 2s linear infinite;
+  }
+  @keyframes bannerShift { 0%{background-position:0% 50%;} 100%{background-position:200% 50%;} }
+  .reveal-grid { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; perspective: 1200px; }
+
+  .rcard { width: 108px; height: 152px; perspective: 800px; cursor: pointer; }
+  .rcard-inner { width:100%; height:100%; position:relative; transform-style: preserve-3d; transition: transform .6s cubic-bezier(.4,0,.2,1); }
+  .rcard.flipped .rcard-inner { transform: rotateY(180deg); }
+  .rcard-face { position:absolute; inset:0; border-radius:10px; backface-visibility:hidden; overflow:hidden; }
+
+  .rcard-back {
+    background: repeating-linear-gradient(45deg,#1a3a5c,#1a3a5c 8px,#1e4570 8px,#1e4570 16px);
+    border: 3px solid #f0c040; display:flex; align-items:center; justify-content:center;
+  }
+  .rcard-back .pokeball { width: 40px; height: 40px; }
+
+  .rcard-front {
+    transform: rotateY(180deg); display:flex; flex-direction:column; align-items:center;
+    background: linear-gradient(160deg,#1a1a2e,#16213e); border: 3px solid var(--rc, #888); padding: 6px;
+  }
+  .r-rarity { font-size:.52rem; font-weight:800; text-transform:uppercase; letter-spacing:1px; color:var(--rc,#888); }
+  .r-art {
+    width: 66px; height: 66px; border-radius: 50%; margin-top: 4px; font-size: 2.2rem; line-height: 66px; text-align: center;
+    background: radial-gradient(circle, var(--el) 0%, #161b22 75%);
+  }
+  .r-name { font-size: .72rem; font-weight:800; margin-top: 4px; }
+  .r-el { font-size: .56rem; padding: 1px 8px; border-radius: 8px; font-weight:700; margin-top: 2px; color:#fff; background: var(--el); }
+  .r-stats { font-size: .55rem; color:#8b949e; margin-top: 4px; text-align:center; line-height: 1.35; }
+
+  .r-shiny { display:none; position:absolute; top:0; left:0; right:0; bottom:0; pointer-events:none;
+    background: radial-gradient(circle at 30% 25%, rgba(255,255,255,.5), transparent 40%); }
+  .rcard-front.shiny { animation: rainbowBorder 1.4s linear infinite; box-shadow: 0 0 18px rgba(255,217,61,.6); }
+  .rcard-front.shiny .r-shiny { display:block; }
+  .rcard-front.rainbow { animation: rainbowBorder .9s linear infinite; box-shadow: 0 0 24px rgba(255,255,255,.5); }
+  .rcard-front.rainbow .r-shiny { display:block; }
+  .sparkle { position:absolute; font-size: .8rem; animation: twinkle 1s ease-in-out infinite; }
+  @keyframes twinkle { 0%,100% {opacity:.2; transform:scale(.7);} 50% {opacity:1; transform:scale(1.2);} }
+  @keyframes rainbowBorder {
+    0% { border-color:#ff6b6b; } 25% { border-color:#ffd93d; } 50% { border-color:#6bcb77; }
+    75% { border-color:#4d96ff; } 100% { border-color:#ff6b6b; }
+  }
+
+  .reveal-controls { margin-top: 20px; display:flex; flex-direction:column; align-items:center; gap:10px; }
+  #btnCollect { display:none; }
+
+  /* ===== PARTICLES ===== */
+  .particles { position: fixed; inset:0; pointer-events:none; z-index: 200; }
+  .particle { position:absolute; width:9px; height:9px; border-radius:2px; animation: fly 1s ease-out forwards; }
+  @keyframes fly { 0%{opacity:1; transform:translate(0,0) rotate(0) scale(1);} 100%{opacity:0; transform:translate(var(--dx),var(--dy)) rotate(360deg) scale(0);} }
+
+  .toast {
+    position: fixed; top: 20%; left: 50%; transform: translateX(-50%); z-index: 300;
+    background: #1a1a2e; border: 2px solid #f0c040; color:#f0c040; font-weight:800;
+    padding: 10px 22px; border-radius: 24px; pointer-events:none; animation: toastUp 1.6s ease-out forwards;
+  }
+  @keyframes toastUp { 0%{opacity:0; transform:translate(-50%,10px);} 15%{opacity:1; transform:translate(-50%,0);} 80%{opacity:1;} 100%{opacity:0; transform:translate(-50%,-16px);} }
+
+  @media (max-width: 420px) {
+    .rcard { width: 88px; height: 124px; }
+    .r-art { width: 52px; height: 52px; font-size: 1.7rem; line-height: 52px; }
+    .pack { width: 160px; height: 220px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>💎 Monster Pack Opener</h1>
+    <div class="hud">
+      <div class="hud-pill"><span>🪙</span><span id="coins">500</span></div>
+      <div class="hud-pill pity" id="pityPill"><span>🎯</span><span id="pity">0/20</span></div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="open">📦 Open</div>
+    <div class="tab" data-tab="collection">📚 Collection</div>
+    <div class="tab" data-tab="stats">📊 Stats</div>
+  </div>
+
+  <!-- OPEN PANEL -->
+  <div class="panel active" id="panel-open">
+    <div class="pack-area">
+      <div class="pack" id="pack" title="Open a booster pack!">
+        <div class="sleeve">
+          <div class="pokeball"></div>
+          <span class="pack-label">Booster Pack</span>
+          <span class="pack-sub">×5 Cards · 100 🪙</span>
+        </div>
+      </div>
+      <p class="hint">Tap the pack to rip it open — the last card is always 🔥 Uncommon+.</p>
+      <button class="btn btn-ghost" id="btnBulk">⚡ Quick Open ×5</button>
+      <details class="odds">
+        <summary>📋 Drop rates</summary>
+        <table>
+          <tr><th></th><th>Cards 1–4</th><th>Chase Card (5th)</th></tr>
+          <tr><td><span class="dot dot-common"></span>Common</td><td>65%</td><td>—</td></tr>
+          <tr><td><span class="dot dot-uncommon"></span>Uncommon</td><td>25%</td><td>72%</td></tr>
+          <tr><td><span class="dot dot-rare"></span>Rare</td><td>9%</td><td>25%</td></tr>
+          <tr><td><span class="dot dot-ultrarare"></span>Ultra Rare</td><td>1%</td><td>3%</td></tr>
+        </table>
+      </details>
+    </div>
+  </div>
+
+  <!-- COLLECTION PANEL -->
+  <div class="panel" id="panel-collection">
+    <div class="filter-bar" id="filterBar">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="common">Common</button>
+      <button class="filter-btn" data-filter="uncommon">Uncommon</button>
+      <button class="filter-btn" data-filter="rare">Rare</button>
+      <button class="filter-btn" data-filter="ultrarare">Ultra Rare</button>
+      <button class="filter-btn" data-filter="shiny">✨ Shiny</button>
+    </div>
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <!-- STATS PANEL -->
+  <div class="panel" id="panel-stats">
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-value" id="stPacks">0</div><div class="stat-label">Packs Opened</div></div>
+      <div class="stat-card"><div class="stat-value" id="stCards">0</div><div class="stat-label">Total Cards</div></div>
+      <div class="stat-card"><div class="stat-value" id="stUnique">0</div><div class="stat-label">Unique Monsters</div></div>
+      <div class="stat-card"><div class="stat-value" id="stShiny">0</div><div class="stat-label">✨ Shinies Pulled</div></div>
+      <div class="stat-card full">
+        <div style="display:flex;justify-content:space-between;font-weight:700;">
+          <span>Collection Progress</span><span id="stPct">0/32</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill" id="stBar" style="width:0%"></div></div>
+      </div>
+      <div class="stat-card full" id="stBreakdown"></div>
+    </div>
+  </div>
+</div>
+
+<!-- REVEAL OVERLAY -->
+<div class="overlay" id="overlay">
+  <div class="banner" id="banner">🎉 ULTRA RARE!</div>
+  <h2>Your Pack!</h2>
+  <div class="sub" id="revealSub">Tap each card to flip it over.</div>
+  <div class="reveal-grid" id="revealGrid"></div>
+  <div class="reveal-controls">
+    <button class="btn btn-gold" id="btnCollect">Collect</button>
+  </div>
+</div>
+
+<div class="particles" id="particles"></div>
+
+<script>
+// ============================================================
+//  MONSTER DATA  (emoji is a stand-in for the Visual Asset Pointer)
+//  To use real art, swap `emoji` for `asset: 'assets/monsters/...'`
+//  and update renderCard() / renderCollection() to show an <img>.
+// ============================================================
+const MONSTER_DB = [
+  // ---- COMMON (14) ----
+  { id:'m01', name:'Fluffwool',  rarity:'common',    element:'normal',   emoji:'🐑', hp:45,  move:'Tackle',       dmg:20 },
+  { id:'m02', name:'Pebblepup',  rarity:'common',    element:'normal',   emoji:'🐶', hp:40,  move:'Bite',         dmg:25 },
+  { id:'m03', name:'Squeakly',   rarity:'common',    element:'normal',   emoji:'🐭', hp:38,  move:'Quick Attack', dmg:20 },
+  { id:'m04', name:'Chirplet',   rarity:'common',    element:'normal',   emoji:'🐦', hp:42,  move:'Peck',         dmg:22 },
+  { id:'m05', name:'Emberkit',   rarity:'common',    element:'fire',     emoji:'🦊', hp:40,  move:'Ember',        dmg:25 },
+  { id:'m06', name:'Lavanewt',   rarity:'common',    element:'fire',     emoji:'🦎', hp:42,  move:'Flare',        dmg:28 },
+  { id:'m07', name:'Droplet',    rarity:'common',    element:'water',    emoji:'🐟', hp:38,  move:'Splash',       dmg:18 },
+  { id:'m08', name:'Bubblepup',  rarity:'common',    element:'water',    emoji:'🐠', hp:40,  move:'Bubble',       dmg:20 },
+  { id:'m09', name:'Sproutling', rarity:'common',    element:'grass',    emoji:'🌱', hp:42,  move:'Sprout',       dmg:20 },
+  { id:'m10', name:'Mossbug',    rarity:'common',    element:'grass',    emoji:'🐛', hp:40,  move:'Leaf Cut',     dmg:24 },
+  { id:'m11', name:'Zapmouse',   rarity:'common',    element:'electric', emoji:'🐭', hp:38,  move:'Static',       dmg:22 },
+  { id:'m12', name:'Buzzling',   rarity:'common',    element:'electric', emoji:'🐝', hp:40,  move:'Buzz',         dmg:24 },
+  { id:'m13', name:'Dreamlet',   rarity:'common',    element:'psychic',  emoji:'🦉', hp:44,  move:'Confuse',      dmg:20 },
+  { id:'m14', name:'Fluffbear',  rarity:'common',    element:'normal',   emoji:'🐻', hp:48,  move:'Body Tackle',  dmg:26 },
+
+  // ---- UNCOMMON (9) ----
+  { id:'m15', name:'Flamefox',   rarity:'uncommon',  element:'fire',     emoji:'🦊', hp:60,  move:'Fire Spin',    dmg:45 },
+  { id:'m16', name:'Torrentide', rarity:'uncommon',  element:'water',    emoji:'🐢', hp:62,  move:'Water Gun',    dmg:40 },
+  { id:'m17', name:'Thornback',  rarity:'uncommon',  element:'grass',    emoji:'🦔', hp:58,  move:'Needle Shot',  dmg:42 },
+  { id:'m18', name:'Voltail',    rarity:'uncommon',  element:'electric', emoji:'🐹', hp:55,  move:'Shock Wave',   dmg:44 },
+  { id:'m19', name:'Mystiquil',  rarity:'uncommon',  element:'psychic',  emoji:'🦉', hp:60,  move:'Mind Wave',    dmg:45 },
+  { id:'m20', name:'Cinderowl',  rarity:'uncommon',  element:'fire',     emoji:'🦅', hp:58,  move:'Flare Burst',  dmg:48 },
+  { id:'m21', name:'Coraltide',  rarity:'uncommon',  element:'water',    emoji:'🐙', hp:60,  move:'Ink Jet',      dmg:42 },
+  { id:'m22', name:'Bloomkin',   rarity:'uncommon',  element:'grass',    emoji:'🦋', hp:62,  move:'Petal Dance',  dmg:44 },
+  { id:'m23', name:'Boltbird',   rarity:'uncommon',  element:'electric', emoji:'🐦', hp:55,  move:'Thunderbolt',  dmg:50 },
+
+  // ---- RARE (5) ----
+  { id:'m24', name:'Pyrodrake',  rarity:'rare',      element:'fire',     emoji:'🐲', hp:95,  move:'Inferno',      dmg:75 },
+  { id:'m25', name:'Abyssal',    rarity:'rare',      element:'water',    emoji:'🦈', hp:100, move:'Hydro Pump',   dmg:70 },
+  { id:'m26', name:'Verdantlord',rarity:'rare',      element:'grass',    emoji:'🦌', hp:105, move:'Solar Beam',   dmg:72 },
+  { id:'m27', name:'Stormcaller',rarity:'rare',      element:'electric', emoji:'⚡', hp:90,  move:'Lightning',    dmg:80 },
+  { id:'m28', name:'Oracleus',   rarity:'rare',      element:'psychic',  emoji:'🧠', hp:100, move:'Psyshock',     dmg:78 },
+
+  // ---- ULTRA RARE (4) ----
+  { id:'m29', name:'Emperyon',   rarity:'ultrarare', element:'fire',     emoji:'🐉', hp:150, move:'Supernova',    dmg:120 },
+  { id:'m30', name:'Leviathan',  rarity:'ultrarare', element:'water',    emoji:'🐳', hp:155, move:'Tsunami',      dmg:115 },
+  { id:'m31', name:'Gaea Titan', rarity:'ultrarare', element:'grass',    emoji:'🌋', hp:160, move:'World Tree',   dmg:110 },
+  { id:'m32', name:'Celestia',   rarity:'ultrarare', element:'psychic',  emoji:'🔮', hp:145, move:'Cosmic Beam',  dmg:125 },
+];
+
+// ============================================================
+//  CONFIG — tune everything here (don't scatter numbers in code)
+// ============================================================
+const PACK_SIZE = 5;
+const PACK_COST = 100;
+const START_COINS = 500;
+const PITY_LIMIT = 20;
+const SHINY_CHANCE = 1 / 32;      // ~3.1% per card
+const RAINBOW_CHANCE = 1 / 200;   // ~0.5% per card
+
+// Weights sum to 100 each (percentages).
+const BASE_RATES = [
+  { rarity:'common',    weight:65 },
+  { rarity:'uncommon',  weight:25 },
+  { rarity:'rare',      weight:9  },
+  { rarity:'ultrarare', weight:1  },
+];
+const GUARANTEED_RATES = [   // chase card — never Common
+  { rarity:'uncommon',  weight:72 },
+  { rarity:'rare',      weight:25 },
+  { rarity:'ultrarare', weight:3  },
+];
+
+const RARITY_LABEL = { common:'Common', uncommon:'Uncommon', rare:'Rare', ultrarare:'Ultra Rare' };
+const RARITY_STAR  = { common:'', uncommon:'', rare:'★', ultrarare:'★★' };
+const RARITY_COLOR = { common:'#9ca3af', uncommon:'#57d38c', rare:'#f5c518', ultrarare:'#c084fc' };
+const DUST = { common:4, uncommon:8, rare:20, ultrarare:40 };   // coins for a duplicate
+
+const ELEMENT_COLOR = { fire:'#e25822', water:'#1e90ff', grass:'#3cb371', electric:'#f5c518', psychic:'#b678f0', normal:'#9aa3ad' };
+const ELEMENT_ICON  = { fire:'🔥', water:'💧', grass:'🌿', electric:'⚡', psychic:'🔮', normal:'⭐' };
+
+// ============================================================
+//  STATE
+// ============================================================
+let state = {
+  coins: START_COINS,
+  packsOpened: 0,
+  packsSinceUltra: 0,
+  collection: {},        // { id: { count, shiny } }
+  rarityBreakdown: { common:0, uncommon:0, rare:0, ultrarare:0 },
+  shinyCount: 0,
+};
+let newlyPulled = new Set();   // for the "NEW!" badge this session
+
+// ============================================================
+//  PACK GENERATION
+// ============================================================
+function rollRarity(table) {
+  const total = table.reduce((s, e) => s + e.weight, 0);
+  let roll = Math.random() * total;
+  for (const entry of table) {
+    if (roll < entry.weight) return entry.rarity;
+    roll -= entry.weight;
+  }
+  return table[table.length - 1].rarity;
+}
+
+function pickMonster(rarity) {
+  const pool = MONSTER_DB.filter(m => m.rarity === rarity);
+  const m = pool[Math.floor(Math.random() * pool.length)];
+  return { ...m, shiny: false };   // clone so we can mutate per-card
+}
+
+function applyShiny(card) {
+  const r = Math.random();
+  if (r < RAINBOW_CHANCE) card.shiny = 'rainbow';
+  else if (r < RAINBOW_CHANCE + SHINY_CHANCE) card.shiny = 'shiny';
+  return card;
+}
+
+function generatePack({ pityActive = false } = {}) {
+  const cards = [];
+  for (let i = 0; i < PACK_SIZE - 1; i++) {
+    cards.push(pickMonster(rollRarity(BASE_RATES)));
+  }
+  // Guaranteed chase card (always Uncommon+), forced Ultra Rare on pity.
+  const guaranteed = pityActive ? 'ultrarare' : rollRarity(GUARANTEED_RATES);
+  cards.push(pickMonster(guaranteed));
+  return cards.map(applyShiny);
+}
+
+// Open one pack: handle cost + pity bookkeeping. Returns { cards, pityActive }.
+function generateAndRecordPack() {
+  const pityActive = state.packsSinceUltra >= PITY_LIMIT;
+  const cards = generatePack({ pityActive });
+  const hasUltra = cards.some(c => c.rarity === 'ultrarare');
+  state.packsSinceUltra = hasUltra ? 0 : state.packsSinceUltra + 1;
+  state.packsOpened++;
+  return { cards, pityActive };
+}
+
+// Add a single card to the collection. Returns { isNew, dust }.
+function processCard(card) {
+  const existing = state.collection[card.id];
+  const isNew = !existing;
+
+  if (!existing) state.collection[card.id] = { count: 0, shiny: false };
+  state.collection[card.id].count++;
+  state.rarityBreakdown[card.rarity]++;
+
+  if (card.shiny) {
+    state.collection[card.id].shiny = true;
+    state.shinyCount++;
+  }
+
+  let dust = 0;
+  if (!isNew) {
+    dust = DUST[card.rarity] * (card.shiny ? 3 : 1);
+    state.coins += dust;
+  } else {
+    newlyPulled.add(card.id);
+  }
+  return { isNew, dust };
+}
+
+// ============================================================
+//  DOM REFS
+// ============================================================
+const $ = s => document.querySelector(s);
+const coinsEl = $('#coins'), pityPill = $('#pityPill'), pityEl = $('#pity');
+const packEl = $('#pack'), btnBulk = $('#btnBulk');
+const overlay = $('#overlay'), revealGrid = $('#revealGrid'), revealSub = $('#revealSub');
+const banner = $('#banner'), btnCollect = $('#btnCollect'), particlesEl = $('#particles');
+const grid = $('#grid');
+
+// ============================================================
+//  REVEAL (flip 5 cards, tap each)
+// ============================================================
+let flippedCount = 0;
+
+function cardFrontHTML(card) {
+  const ec = ELEMENT_COLOR[card.element];
+  const rc = RARITY_COLOR[card.rarity];
+  const sparkles = card.shiny
+    ? `<span class="sparkle" style="top:8px;left:10px;">✨</span>
+       <span class="sparkle" style="top:16px;right:12px;animation-delay:.3s;">✨</span>
+       <span class="sparkle" style="bottom:14px;left:14px;animation-delay:.6s;">✨</span>` : '';
+  return `
+    <div class="r-rarity">${RARITY_STAR[card.rarity]} ${RARITY_LABEL[card.rarity]}</div>
+    <div class="r-art" style="--el:${ec}">${card.emoji}</div>
+    <div class="r-name">${card.name}</div>
+    <div class="r-el" style="--el:${ec}">${ELEMENT_ICON[card.element]} ${card.element}</div>
+    <div class="r-stats">HP ${card.hp}<br>${card.move} ${card.dmg}</div>
+    ${card.shiny ? '<div class="r-shiny"></div>' + sparkles : ''}
+  `;
+}
+
+function spawnParticles(x, y, colors, count) {
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const ang = Math.random() * Math.PI * 2, dist = 40 + Math.random() * 110;
+    p.style.cssText = `left:${x}px;top:${y}px;background:${colors[i % colors.length]};
+      --dx:${Math.cos(ang) * dist}px;--dy:${Math.sin(ang) * dist}px;
+      animation-duration:${0.6 + Math.random() * 0.8}s;`;
+    particlesEl.appendChild(p);
+    setTimeout(() => p.remove(), 1500);
+  }
+}
+
+function flipCard(el, card) {
+  if (el.classList.contains('flipped')) return;
+  el.classList.add('flipped');
+
+  const front = el.querySelector('.rcard-front');
+  front.className = 'rcard-face rcard-front rarity-' + card.rarity + (card.shiny ? ' ' + card.shiny : '');
+  front.innerHTML = cardFrontHTML(card);
+
+  const { dust } = processCard(card);
+  coinsEl.textContent = state.coins;   // live-update the header while revealing
+
+  // Feedback
+  const rect = el.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+  if (card.rarity === 'ultrarare') {
+    spawnParticles(cx, cy, ['#c084fc','#ffd93d','#4d96ff','#ff6b6b'], 40);
+    banner.style.display = 'block';
+  } else if (card.rarity === 'rare') {
+    spawnParticles(cx, cy, ['#f5c518','#ffd700'], 18);
+  }
+  if (card.shiny) spawnParticles(cx, cy, ['#ffd93d','#ffffff','#ff6b6b'], 16);
+  if (dust > 0) showToast(`Duplicate! +${dust} 🪙`);
+
+  flippedCount++;
+  if (flippedCount >= PACK_SIZE) {
+    revealSub.textContent = 'All done!';
+    btnCollect.style.display = 'inline-block';
+  } else {
+    revealSub.textContent = `Tap each card to flip it over (${flippedCount}/${PACK_SIZE})`;
+  }
+}
+
+function startReveal({ cards, pityActive }) {
+  flippedCount = 0;
+  btnCollect.style.display = 'none';
+  banner.style.display = 'none';
+  if (pityActive) { banner.textContent = '🎁 PITY BONUS!'; banner.style.display = 'block'; }
+  else banner.textContent = '🎉 ULTRA RARE!';
+
+  revealGrid.innerHTML = '';
+  cards.forEach(card => {
+    const el = document.createElement('div');
+    el.className = 'rcard';
+    el.innerHTML = `
+      <div class="rcard-inner">
+        <div class="rcard-face rcard-back"><div class="pokeball"></div></div>
+        <div class="rcard-face rcard-front"></div>
+      </div>`;
+    el.addEventListener('click', () => flipCard(el, card));
+    revealGrid.appendChild(el);
+  });
+
+  revealSub.textContent = `Tap each card to flip it over (0/${PACK_SIZE})`;
+  overlay.classList.add('active');
+  updateUI();
+}
+
+function closeReveal() {
+  overlay.classList.remove('active');
+  updateUI();   // refresh collection + stats + save after the pack is collected
+}
+
+// ============================================================
+//  ACTIONS
+// ============================================================
+function openSingle() {
+  if (state.coins < PACK_COST) { packEl.classList.add('shake'); setTimeout(() => packEl.classList.remove('shake'), 400); showToast('Not enough coins!'); return; }
+  state.coins -= PACK_COST;
+  startReveal(generateAndRecordPack());
+}
+
+function openBulk() {
+  const cost = PACK_COST * 5;
+  if (state.coins < cost) { showToast('Not enough coins!'); return; }
+  state.coins -= cost;
+
+  let newCards = 0, shinyCards = 0;
+  for (let i = 0; i < 5; i++) {
+    const { cards } = generateAndRecordPack();
+    for (const c of cards) {
+      const r = processCard(c);
+      if (r.isNew) newCards++;
+      if (c.shiny) shinyCards++;
+    }
+  }
+  showToast(`5 packs opened! ${newCards} new · ${shinyCards} ✨`);
+  updateUI();
+}
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 1600);
+}
+
+// ============================================================
+//  UI RENDER
+// ============================================================
+function updateUI() {
+  coinsEl.textContent = state.coins;
+  const ready = state.packsSinceUltra >= PITY_LIMIT;
+  pityEl.textContent = `${state.packsSinceUltra}/${PITY_LIMIT}`;
+  pityPill.classList.toggle('ready', ready);
+  renderCollection();
+  renderStats();
+  saveState();
+}
+
+function renderCollection() {
+  const filter = $('#filterBar .filter-btn.active')?.dataset.filter || 'all';
+  const ids = Object.keys(state.collection);
+  if (ids.length === 0) {
+    grid.innerHTML = `<div class="empty"><div class="e-icon">📦</div><p>No monsters yet — open a pack!</p></div>`;
+    return;
+  }
+  let html = '';
+  for (const id of ids) {
+    const m = MONSTER_DB.find(p => p.id === id);
+    if (!m) continue;
+    const rec = state.collection[id];
+    if (filter === 'shiny' && !rec.shiny) continue;
+    if (filter !== 'all' && filter !== 'shiny' && m.rarity !== filter) continue;
+
+    html += `
+      <div class="c-card rarity-${m.rarity}">
+        ${newlyPulled.has(id) ? '<span class="new-badge">NEW!</span>' : ''}
+        ${rec.shiny ? '<span class="shiny-badge">✨</span>' : ''}
+        <div class="c-art">${m.emoji}</div>
+        <div class="c-name">${m.name}</div>
+        <div class="c-count ${rec.shiny ? 'shiny' : ''}">×${rec.count}</div>
+      </div>`;
+  }
+  grid.innerHTML = html || `<div class="empty"><p>Nothing matches this filter yet.</p></div>`;
+}
+
+function renderStats() {
+  const unique = Object.keys(state.collection).length;
+  const totalCards = Object.values(state.collection).reduce((a, b) => a + b.count, 0);
+  const total = MONSTER_DB.length;
+  const pct = Math.round(unique / total * 100);
+
+  $('#stPacks').textContent = state.packsOpened;
+  $('#stCards').textContent = totalCards;
+  $('#stUnique').textContent = unique;
+  $('#stShiny').textContent = state.shinyCount;
+  $('#stPct').textContent = `${unique}/${total}`;
+  $('#stBar').style.width = pct + '%';
+
+  const rb = state.rarityBreakdown;
+  $('#stBreakdown').innerHTML = `
+    <div style="font-weight:700;margin-bottom:8px;">Rarity Breakdown</div>
+    <div class="breakdown-row"><span><span class="dot dot-common"></span>Common</span><span>${rb.common}</span></div>
+    <div class="breakdown-row"><span><span class="dot dot-uncommon"></span>Uncommon</span><span>${rb.uncommon}</span></div>
+    <div class="breakdown-row"><span><span class="dot dot-rare"></span>Rare</span><span>${rb.rare}</span></div>
+    <div class="breakdown-row"><span><span class="dot dot-ultrarare"></span>Ultra Rare</span><span>${rb.ultrarare}</span></div>`;
+}
+
+// ============================================================
+//  PERSISTENCE
+// ============================================================
+function saveState() {
+  localStorage.setItem('monster-pack-state-v1', JSON.stringify(state));
+}
+function loadState() {
+  try {
+    const raw = localStorage.getItem('monster-pack-state-v1');
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    state.coins = s.coins ?? START_COINS;
+    state.packsOpened = s.packsOpened ?? 0;
+    state.packsSinceUltra = s.packsSinceUltra ?? 0;
+    state.collection = s.collection ?? {};
+    state.rarityBreakdown = s.rarityBreakdown ?? { common:0, uncommon:0, rare:0, ultrarare:0 };
+    state.shinyCount = s.shinyCount ?? 0;
+  } catch (e) { console.warn('Could not load save:', e); }
+}
+
+// ============================================================
+//  EVENTS & INIT
+// ============================================================
+packEl.addEventListener('click', openSingle);
+btnBulk.addEventListener('click', openBulk);
+btnCollect.addEventListener('click', closeReveal);
+
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
+  t.classList.add('active');
+  $('#panel-' + t.dataset.tab).classList.add('active');
+}));
+
+$('#filterBar').addEventListener('click', e => {
+  if (e.target.classList.contains('filter-btn')) {
+    document.querySelectorAll('#filterBar .filter-btn').forEach(b => b.classList.remove('active'));
+    e.target.classList.add('active');
+    renderCollection();
+  }
+});
+
+loadState();
+updateUI();
+</script>
+</body>
+</html>

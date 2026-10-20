@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Color Pad</title>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      font-family: "Comic Sans MS", "Chalkboard SE", cursive, sans-serif;
+      background: #f2f2f7;
+    }
+    #toolbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      background: #ffffff;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+      z-index: 10;
+    }
+    .swatch {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 3px solid #fff;
+      box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.15);
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+    .swatch:hover { transform: scale(1.15); }
+    .swatch.active { box-shadow: 0 0 0 3px #333; }
+
+    #customColor {
+      width: 40px;
+      height: 40px;
+      border: none;
+      padding: 0;
+      background: none;
+      cursor: pointer;
+    }
+
+    .spacer { flex: 1; }
+
+    #sizeLabel { font-size: 1rem; color: #555; }
+    input[type="range"] { cursor: pointer; }
+
+    button {
+      font-family: inherit;
+      font-size: 1rem;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      background: #e8e8f0;
+      color: #333;
+    }
+    button:hover { background: #dcdce8; }
+    #clearBtn { background: #ff6b6b; color: #fff; }
+    #clearBtn:hover { background: #fa5252; }
+
+    canvas {
+      display: block;
+      position: fixed;
+      top: 0;
+      left: 0;
+      cursor: crosshair;
+    }
+  </style>
+</head>
+<body>
+  <div id="toolbar">
+    <span class="swatch" style="background:#111" data-color="#111"></span>
+    <span class="swatch" style="background:#ff6b6b" data-color="#ff6b6b"></span>
+    <span class="swatch" style="background:#ffa94d" data-color="#ffa94d"></span>
+    <span class="swatch" style="background:#ffd43b" data-color="#ffd43b"></span>
+    <span class="swatch" style="background:#69db7c" data-color="#69db7c"></span>
+    <span class="swatch" style="background:#38d9a9" data-color="#38d9a9"></span>
+    <span class="swatch" style="background:#74c0fc" data-color="#74c0fc"></span>
+    <span class="swatch" style="background:#748ffc" data-color="#748ffc"></span>
+    <span class="swatch" style="background:#b197fc" data-color="#b197fc"></span>
+    <span class="swatch" style="background:#faa2c1" data-color="#faa2c1"></span>
+    <input type="color" id="customColor" value="#ff6b9d" title="Pick any color">
+    <span class="spacer"></span>
+    <span id="sizeLabel">Brush: 12</span>
+    <input type="range" id="sizeRange" min="2" max="80" value="12">
+    <button id="eraserBtn">🧽 Eraser</button>
+    <button id="clearBtn">🗑️ Clear</button>
+  </div>
+
+  <canvas id="pad"></canvas>
+
+  <script>
+    const canvas = document.getElementById('pad');
+    const ctx = canvas.getContext('2d');
+    const sizeRange = document.getElementById('sizeRange');
+    const sizeLabel = document.getElementById('sizeLabel');
+    const eraserBtn = document.getElementById('eraserBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const customColor = document.getElementById('customColor');
+    const swatches = document.querySelectorAll('.swatch');
+
+    let color = '#111';
+    let size = 12;
+    let erasing = false;
+    let drawing = false;
+
+    function resize() {
+      // keep existing drawing when resizing
+      const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      ctx.putImageData(data, 0, 0);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    function pos(e) {
+      const r = canvas.getBoundingClientRect();
+      return { x: e.clientX - r.left, y: e.clientY - r.top };
+    }
+
+    function start(e) {
+      drawing = true;
+      const p = pos(e);
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      drawTo(e);
+    }
+
+    function drawTo(e) {
+      if (!drawing) return;
+      const p = pos(e);
+      ctx.lineWidth = size;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = erasing ? '#f2f2f7' : color;
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+    }
+
+    function end() { drawing = false; }
+
+    canvas.addEventListener('mousedown', start);
+    canvas.addEventListener('mousemove', drawTo);
+    window.addEventListener('mouseup', end);
+
+    // touch support
+    canvas.addEventListener('touchstart', e => {
+      e.preventDefault();
+      const t = e.touches[0];
+      start({ clientX: t.clientX, clientY: t.clientY });
+    });
+    canvas.addEventListener('touchmove', e => {
+      e.preventDefault();
+      const t = e.touches[0];
+      drawTo({ clientX: t.clientX, clientY: t.clientY });
+    });
+    canvas.addEventListener('touchend', end);
+
+    swatches.forEach(s => s.addEventListener('click', () => {
+      color = s.dataset.color;
+      erasing = false;
+      eraserBtn.textContent = '🧽 Eraser';
+      swatches.forEach(x => x.classList.remove('active'));
+      s.classList.add('active');
+    }));
+
+    customColor.addEventListener('input', () => {
+      color = customColor.value;
+      erasing = false;
+      eraserBtn.textContent = '🧽 Eraser';
+      swatches.forEach(x => x.classList.remove('active'));
+    });
+
+    sizeRange.addEventListener('input', () => {
+      size = Number(sizeRange.value);
+      sizeLabel.textContent = 'Brush: ' + size;
+    });
+
+    eraserBtn.addEventListener('click', () => {
+      erasing = !erasing;
+      eraserBtn.textContent = erasing ? '✏️ Draw' : '🧽 Eraser';
+    });
+
+    clearBtn.addEventListener('click', () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    });
+  </script>
+</body>
+</html>
